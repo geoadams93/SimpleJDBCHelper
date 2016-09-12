@@ -11,31 +11,80 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+/**
+ * Used as the endpoint for JDBC operations, this class contains methods that
+ * accept a {@link ResultSet} and a {@link Function} that is used to convert the
+ * {@link ResultSet} to usable Java Objects or Collections.
+ */
 public class ResultSetCollector
 {
 	private static ResultSetCollector instance = new ResultSetCollector();
-	
+
 	private ResultSetCollector()
 	{
-		
+
 	}
-	
+
+	/**
+	 * Gets an instance of a {@link ResultSetCollector}. Will return a singleton
+	 * instance.
+	 * 
+	 * @return The {@link ResultSetCollector} instance.
+	 */
 	public static ResultSetCollector get()
 	{
 		return instance;
 	}
-	
-	public <T> T getSingleResult(ResultSet results, Function<ResultSet, T> conversion) throws SQLException
+
+	/**
+	 * Applies the provided {@link Function} to the first row in the
+	 * {@link ResultSet} to return a single value. If the {@link ResultSet}
+	 * contains no rows, {@code null} will be returned.
+	 * 
+	 * @param results The {@link ResultSet} to get the row's data from.
+	 * @param conversion The {@link Function} that will be used to convert the
+	 *        {@link ResultSet}'s row.
+	 * @return The result of converting the first row of the {@link ResultSet}
+	 *         with the provided {@link Function}.
+	 * @throws SQLException If the reading of the {@link ResultSet} fails.
+	 */
+	public <T> T getSingleRow(ResultSet results, Function<ResultSet, T> conversion) throws SQLException
 	{
 		return results.next() ? conversion.apply(results) : null;
 	}
 
-	public <T> Optional<T> getOptionalResult(ResultSet results, Function<ResultSet, T> conversion) throws SQLException
+	/**
+	 * Applies the provided {@link Function} to the first row in the
+	 * {@link ResultSet} to return a single value wrapped in an {@link Optional}
+	 * .
+	 * 
+	 * @param results The {@link ResultSet} to get the row's data from.
+	 * @param conversion The {@link Function} that will be used to convert the
+	 *        {@link ResultSet}'s row.
+	 * @return The result of converting the first row of the {@link ResultSet}
+	 *         with the provided {@link Function}, wrapped in an
+	 *         {@link Optional}.
+	 * @throws SQLException If the reading of the {@link ResultSet} fails.
+	 */
+	public <T> Optional<T> getOptionalRow(ResultSet results, Function<ResultSet, T> conversion) throws SQLException
 	{
-		return Optional.ofNullable(conversion.apply(results));
+		return Optional.ofNullable(results.next() ? conversion.apply(results) : null);
 	}
-	
-	public <T> Collection<T> getAllResults(ResultSet results, Function<ResultSet, T> conversion) throws SQLException
+
+	/**
+	 * Applies the provided {@link Function} to all the rows in the
+	 * {@link ResultSet} to return the values in a {@link Collection}.
+	 * 
+	 * @param results The {@link ResultSet} to get the row's data from.
+	 * @param conversion The {@link Function} that will be used to convert the
+	 *        {@link ResultSet}'s row.
+	 * @return The result of converting the rows of the {@link ResultSet} with
+	 *         the provided {@link Function}, stored in a {@link Collection}. No
+	 *         guarantees are made about the type, thread safety, or efficiency
+	 *         of the {@link Collection}.
+	 * @throws SQLException If the reading of the {@link ResultSet} fails.
+	 */
+	public <T> Collection<T> getAllRows(ResultSet results, Function<ResultSet, T> conversion) throws SQLException
 	{
 		List<T> listToReturn = new ArrayList<>();
 		while (results.next())
@@ -45,8 +94,23 @@ public class ResultSetCollector
 
 		return listToReturn;
 	}
-	
-	public <T> Collection<T> getAllResults(ResultSet results, Function<ResultSet, T> conversion, Collection<T> containerCollection) throws SQLException
+
+	/**
+	 * Applies the provided {@link Function} to all the rows in the
+	 * {@link ResultSet} to return the values in the passed in
+	 * {@link Collection}.
+	 * 
+	 * @param results The {@link ResultSet} to get the row's data from.
+	 * @param conversion The {@link Function} that will be used to convert the
+	 *        {@link ResultSet}'s row.
+	 * @param containerCollection The {@link Collection} to deposit the
+	 *        converted values into.
+	 * @return The result of converting the rows of the {@link ResultSet} with
+	 *         the provided {@link Function}, stored in the passed in
+	 *         {@link Collection} .
+	 * @throws SQLException If the reading of the {@link ResultSet} fails.
+	 */
+	public <T, C extends Collection<T>> C getAllRows(ResultSet results, Function<ResultSet, T> conversion, C containerCollection) throws SQLException
 	{
 		while (results.next())
 		{
@@ -55,8 +119,24 @@ public class ResultSetCollector
 
 		return containerCollection;
 	}
-	
-	public <T, C extends Collection<T>> Collection<T> getAllResults(ResultSet results, Function<ResultSet, T> conversion, Supplier<C> collectionConstructor) throws SQLException
+
+	/**
+	 * Applies the provided {@link Function} to all the rows in the
+	 * {@link ResultSet} to return the values that will be returned inside a new
+	 * collection that is created with the given {@link Supplier}.
+	 * 
+	 * @param results The {@link ResultSet} to get the row's data from.
+	 * @param conversion The {@link Function} that will be used to convert the
+	 *        {@link ResultSet}'s row.
+	 * @param collectionConstructor The {@link Supplier} that will be used to
+	 *        create a new {@link Collection} to deposit the converted values
+	 *        into.
+	 * @return The result of converting the rows of the {@link ResultSet} with
+	 *         the provided {@link Function}, stored in a new instance of the
+	 *         {@link Collection}.
+	 * @throws SQLException If the reading of the {@link ResultSet} fails.
+	 */
+	public <T, C extends Collection<T>> Collection<T> getAllRows(ResultSet results, Function<ResultSet, T> conversion, Supplier<C> collectionConstructor) throws SQLException
 	{
 		Collection<T> collectionToReturn = collectionConstructor.get();
 		while (results.next())
@@ -67,9 +147,9 @@ public class ResultSetCollector
 		return collectionToReturn;
 	}
 
-	public <K, V> Map<K, V> getAllResultsAsMap(ResultSet results, Function<ResultSet, Map.Entry<K, V>> conversion) throws SQLException
+	public <K, V> Map<K, V> getAllRowsAsMap(ResultSet results, Function<ResultSet, Map.Entry<K, V>> conversion) throws SQLException
 	{
-		Map<K,V> mapToReturn = new HashMap<>();
+		Map<K, V> mapToReturn = new HashMap<>();
 		Map.Entry<K, V> entry;
 		while (results.next())
 		{
@@ -79,8 +159,8 @@ public class ResultSetCollector
 
 		return mapToReturn;
 	}
-	
-	public <K, V> Map<K, V> getAllResultsAsMap(ResultSet results, Function<ResultSet, Map.Entry<K, V>> conversion, Map<K, V> containerMap) throws SQLException
+
+	public <K, V> Map<K, V> getAllRowsAsMap(ResultSet results, Function<ResultSet, Map.Entry<K, V>> conversion, Map<K, V> containerMap) throws SQLException
 	{
 		Map.Entry<K, V> entry;
 		while (results.next())
@@ -91,10 +171,10 @@ public class ResultSetCollector
 
 		return containerMap;
 	}
-	
-	public <K, V, M extends Map<K, V>> Map<K, V> getAllResultsAsMap(ResultSet results, Function<ResultSet, Map.Entry<K, V>> conversion, Supplier<M> mapConstructor) throws SQLException
+
+	public <K, V, M extends Map<K, V>> Map<K, V> getAllRowsAsMap(ResultSet results, Function<ResultSet, Map.Entry<K, V>> conversion, Supplier<M> mapConstructor) throws SQLException
 	{
-		Map<K,V> mapToReturn = mapConstructor.get();
+		Map<K, V> mapToReturn = mapConstructor.get();
 		Map.Entry<K, V> entry;
 		while (results.next())
 		{
