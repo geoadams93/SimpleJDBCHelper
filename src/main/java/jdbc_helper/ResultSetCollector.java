@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collector;
 
 /**
  * Used as the endpoint for JDBC operations, this class contains methods that
@@ -145,6 +146,17 @@ public class ResultSetCollector
 		}
 
 		return collectionToReturn;
+	}
+	
+	public <T, A, R> R getAllRows(ResultSet results, Function<ResultSet, T> conversion, Collector<T, A, R> collector) throws SQLException
+	{
+		A accumulator  = collector.supplier().get();
+		while (results.next())
+		{
+			collector.accumulator().accept(accumulator , conversion.apply(results));
+		}
+
+		return collector.finisher().apply(accumulator);
 	}
 
 	public <K, V> Map<K, V> getAllRowsAsMap(ResultSet results, Function<ResultSet, Map.Entry<K, V>> conversion) throws SQLException
